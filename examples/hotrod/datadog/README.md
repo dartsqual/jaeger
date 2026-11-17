@@ -15,6 +15,9 @@ e enviando traces para o Datadog Agent.
   processo (`mysql` no customer, `redis-manual` no driver) recebem o atributo
   `service.name` em cada span e aparecem como serviços próprios
   (`DD_SERVICE_PREFIX` + nome, ex.: `hotrod-mysql`).
+- `services/frontend/rum.go`: injeta o **Datadog Browser RUM** no `index.html`
+  quando `DD_RUM_APPLICATION_ID` e `DD_RUM_CLIENT_TOKEN` estão definidos (ver
+  [RUM](#rum-browser)). Sem essas variáveis, a página não muda.
 - `cmd/flags.go`: texto de ajuda do `--otel-exporter` inclui `datadog`.
 - `go.mod`/`go.sum`: dependência `github.com/DataDog/dd-trace-go/v2`.
 
@@ -25,7 +28,7 @@ Sem `--otel-exporter=datadog`, o comportamento original (OTLP/stdout) não muda.
 Requer Go 1.27+ (o toolchain é baixado automaticamente se necessário).
 
 ```bash
-examples/hotrod/datadog/build-image.sh 1.0.1      # gera hotrod-dd.tar
+examples/hotrod/datadog/build-image.sh 1.0.2      # gera hotrod-dd.tar
 sudo k3s ctr -n k8s.io images import hotrod-dd.tar # k3s; em outros clusters, faça push para um registry
 ```
 
@@ -52,6 +55,29 @@ Acesso externo (Traefik + Let's Encrypt), substituindo o hostname:
 ```bash
 sed 's/HOTROD_HOST/hotrod.exemplo.com/' examples/hotrod/datadog/k8s/hotrod-ingress.yaml | kubectl apply -f -
 ```
+
+## RUM (browser)
+
+1. Crie uma aplicação RUM do tipo Browser no Datadog (ex.: `hotrod-web`) e coloque
+   o Application ID em `RUM_APPLICATION_ID` no `gen_hotrod.py`.
+2. Crie o Secret com o client token (o frontend o lê como opcional):
+
+   ```bash
+   kubectl -n hotrod create secret generic hotrod-rum --from-literal=client-token=pub...
+   kubectl -n hotrod rollout restart deploy/frontend
+   ```
+
+| Variável | Padrão |
+| --- | --- |
+| `DD_RUM_APPLICATION_ID`, `DD_RUM_CLIENT_TOKEN` | obrigatórias |
+| `DD_SITE` | `datadoghq.com` |
+| `DD_RUM_SERVICE` | `hotrod-web` |
+| `DD_ENV`, `DD_VERSION` | injetadas pelo Admission Controller |
+| `DD_RUM_SESSION_SAMPLE_RATE` / `DD_RUM_SESSION_REPLAY_SAMPLE_RATE` | `100` / `100` |
+
+As chamadas same-origin (`/dispatch`, `/config`) levam o header W3C `traceparent`,
+então cada recurso RUM abre o trace do backend (`hotrod-web` → `hotrod-frontend`
+→ customer/driver/route). Session Replay usa `mask-user-input`.
 
 ## No Datadog
 

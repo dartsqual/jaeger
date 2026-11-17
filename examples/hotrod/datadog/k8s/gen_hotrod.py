@@ -8,9 +8,12 @@ SERVICES = [
     ("driver", 8082, []),
     ("route", 8083, []),
 ]
-IMAGE = "docker.io/library/hotrod-dd:1.0.1"
+IMAGE = "docker.io/library/hotrod-dd:1.0.2"
 ENV = "hotrod"
-VERSION = "1.0.1"
+# Datadog RUM no frontend: application ID (público) + client token no Secret
+# hotrod/hotrod-rum (chave client-token). Secret opcional: sem ele o RUM fica desligado.
+RUM_APPLICATION_ID = "58ed9bf0-b54e-4749-976e-0c4d6d7d242d"
+VERSION = "1.0.2"
 
 docs = ["""# HotROD (jaegertracing/jaeger/examples/hotrod) instrumentado com Datadog dd-trace-go.
 # Imagem hotrod-dd (ver ../README.md), build com o TracerProvider do dd-trace-go (flag -x datadog).
@@ -23,8 +26,21 @@ metadata:
   name: hotrod
 """]
 
+RUM_ENV = f"""            - name: DD_RUM_APPLICATION_ID
+              value: {RUM_APPLICATION_ID}
+            - name: DD_RUM_SERVICE
+              value: hotrod-web
+            - name: DD_RUM_CLIENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hotrod-rum
+                  key: client-token
+                  optional: true
+"""
+
 for name, port, extra in SERVICES:
     svc = f"hotrod-{name}"
+    rum_env = RUM_ENV if name == "frontend" else ""
     args = "\n".join(f"            - {a}" for a in [name, "--otel-exporter=datadog", *extra])
     docs.append(f"""apiVersion: apps/v1
 kind: Deployment
@@ -73,7 +89,7 @@ spec:
               value: "true"
             - name: DD_TRACE_SAMPLE_RATE
               value: "1"
-          ports:
+{rum_env}          ports:
             - name: http
               containerPort: {port}
           readinessProbe:

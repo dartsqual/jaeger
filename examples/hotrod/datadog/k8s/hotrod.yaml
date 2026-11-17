@@ -18,7 +18,7 @@ metadata:
     app.kubernetes.io/part-of: hotrod
     tags.datadoghq.com/env: hotrod
     tags.datadoghq.com/service: hotrod-frontend
-    tags.datadoghq.com/version: "1.0.1"
+    tags.datadoghq.com/version: "1.0.2"
 spec:
   replicas: 1
   selector:
@@ -31,7 +31,7 @@ spec:
         app.kubernetes.io/part-of: hotrod
         tags.datadoghq.com/env: hotrod
         tags.datadoghq.com/service: hotrod-frontend
-        tags.datadoghq.com/version: "1.0.1"
+        tags.datadoghq.com/version: "1.0.2"
         admission.datadoghq.com/enabled: "true"
       annotations:
         ad.datadoghq.com/frontend.logs: '[{"source": "go", "service": "hotrod-frontend"}]'
@@ -41,7 +41,7 @@ spec:
         runAsUser: 65532
       containers:
         - name: frontend
-          image: docker.io/library/hotrod-dd:1.0.1
+          image: docker.io/library/hotrod-dd:1.0.2
           imagePullPolicy: Never
           command: ["/usr/local/bin/hotrod"]
           args:
@@ -59,6 +59,16 @@ spec:
               value: "true"
             - name: DD_TRACE_SAMPLE_RATE
               value: "1"
+            - name: DD_RUM_APPLICATION_ID
+              value: 58ed9bf0-b54e-4749-976e-0c4d6d7d242d
+            - name: DD_RUM_SERVICE
+              value: hotrod-web
+            - name: DD_RUM_CLIENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hotrod-rum
+                  key: client-token
+                  optional: true
           ports:
             - name: http
               containerPort: 8080
@@ -102,7 +112,7 @@ metadata:
     app.kubernetes.io/part-of: hotrod
     tags.datadoghq.com/env: hotrod
     tags.datadoghq.com/service: hotrod-customer
-    tags.datadoghq.com/version: "1.0.1"
+    tags.datadoghq.com/version: "1.0.2"
 spec:
   replicas: 1
   selector:
@@ -115,7 +125,7 @@ spec:
         app.kubernetes.io/part-of: hotrod
         tags.datadoghq.com/env: hotrod
         tags.datadoghq.com/service: hotrod-customer
-        tags.datadoghq.com/version: "1.0.1"
+        tags.datadoghq.com/version: "1.0.2"
         admission.datadoghq.com/enabled: "true"
       annotations:
         ad.datadoghq.com/customer.logs: '[{"source": "go", "service": "hotrod-customer"}]'
@@ -125,7 +135,7 @@ spec:
         runAsUser: 65532
       containers:
         - name: customer
-          image: docker.io/library/hotrod-dd:1.0.1
+          image: docker.io/library/hotrod-dd:1.0.2
           imagePullPolicy: Never
           command: ["/usr/local/bin/hotrod"]
           args:
@@ -183,7 +193,7 @@ metadata:
     app.kubernetes.io/part-of: hotrod
     tags.datadoghq.com/env: hotrod
     tags.datadoghq.com/service: hotrod-driver
-    tags.datadoghq.com/version: "1.0.1"
+    tags.datadoghq.com/version: "1.0.2"
 spec:
   replicas: 1
   selector:
@@ -196,7 +206,7 @@ spec:
         app.kubernetes.io/part-of: hotrod
         tags.datadoghq.com/env: hotrod
         tags.datadoghq.com/service: hotrod-driver
-        tags.datadoghq.com/version: "1.0.1"
+        tags.datadoghq.com/version: "1.0.2"
         admission.datadoghq.com/enabled: "true"
       annotations:
         ad.datadoghq.com/driver.logs: '[{"source": "go", "service": "hotrod-driver"}]'
@@ -206,7 +216,7 @@ spec:
         runAsUser: 65532
       containers:
         - name: driver
-          image: docker.io/library/hotrod-dd:1.0.1
+          image: docker.io/library/hotrod-dd:1.0.2
           imagePullPolicy: Never
           command: ["/usr/local/bin/hotrod"]
           args:
@@ -264,7 +274,7 @@ metadata:
     app.kubernetes.io/part-of: hotrod
     tags.datadoghq.com/env: hotrod
     tags.datadoghq.com/service: hotrod-route
-    tags.datadoghq.com/version: "1.0.1"
+    tags.datadoghq.com/version: "1.0.2"
 spec:
   replicas: 1
   selector:
@@ -277,7 +287,7 @@ spec:
         app.kubernetes.io/part-of: hotrod
         tags.datadoghq.com/env: hotrod
         tags.datadoghq.com/service: hotrod-route
-        tags.datadoghq.com/version: "1.0.1"
+        tags.datadoghq.com/version: "1.0.2"
         admission.datadoghq.com/enabled: "true"
       annotations:
         ad.datadoghq.com/route.logs: '[{"source": "go", "service": "hotrod-route"}]'
@@ -287,7 +297,7 @@ spec:
         runAsUser: 65532
       containers:
         - name: route
-          image: docker.io/library/hotrod-dd:1.0.1
+          image: docker.io/library/hotrod-dd:1.0.2
           imagePullPolicy: Never
           command: ["/usr/local/bin/hotrod"]
           args:
