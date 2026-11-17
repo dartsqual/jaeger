@@ -1,0 +1,336 @@
+# HotROD (jaegertracing/jaeger/examples/hotrod) instrumentado com Datadog dd-trace-go.
+# Imagem hotrod-dd (ver ../README.md), build com o TracerProvider do dd-trace-go (flag -x datadog).
+# Um Deployment por microsserviço: no dd-trace, 1 processo = 1 serviço.
+# O Datadog Admission Controller injeta a conexão com o Agent (socket APM) e
+# DD_ENV/DD_SERVICE/DD_VERSION a partir dos labels tags.datadoghq.com/*.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hotrod
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: hotrod
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: hotrod
+    tags.datadoghq.com/env: hotrod
+    tags.datadoghq.com/service: hotrod-frontend
+    tags.datadoghq.com/version: "1.0.1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+        app.kubernetes.io/part-of: hotrod
+        tags.datadoghq.com/env: hotrod
+        tags.datadoghq.com/service: hotrod-frontend
+        tags.datadoghq.com/version: "1.0.1"
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        ad.datadoghq.com/frontend.logs: '[{"source": "go", "service": "hotrod-frontend"}]'
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      containers:
+        - name: frontend
+          image: docker.io/library/hotrod-dd:1.0.1
+          imagePullPolicy: Never
+          command: ["/usr/local/bin/hotrod"]
+          args:
+            - frontend
+            - --otel-exporter=datadog
+            - --customer-service-hostname=customer
+            - --driver-service-hostname=driver
+            - --route-service-hostname=route
+          env:
+            - name: DD_SERVICE
+              value: hotrod-frontend
+            - name: DD_SERVICE_PREFIX
+              value: hotrod-
+            - name: DD_RUNTIME_METRICS_ENABLED
+              value: "true"
+            - name: DD_TRACE_SAMPLE_RATE
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 20m
+              memory: 48Mi
+            limits:
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: hotrod
+spec:
+  selector:
+    app.kubernetes.io/name: frontend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer
+  namespace: hotrod
+  labels:
+    app.kubernetes.io/name: customer
+    app.kubernetes.io/part-of: hotrod
+    tags.datadoghq.com/env: hotrod
+    tags.datadoghq.com/service: hotrod-customer
+    tags.datadoghq.com/version: "1.0.1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: customer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: customer
+        app.kubernetes.io/part-of: hotrod
+        tags.datadoghq.com/env: hotrod
+        tags.datadoghq.com/service: hotrod-customer
+        tags.datadoghq.com/version: "1.0.1"
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        ad.datadoghq.com/customer.logs: '[{"source": "go", "service": "hotrod-customer"}]'
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      containers:
+        - name: customer
+          image: docker.io/library/hotrod-dd:1.0.1
+          imagePullPolicy: Never
+          command: ["/usr/local/bin/hotrod"]
+          args:
+            - customer
+            - --otel-exporter=datadog
+          env:
+            - name: DD_SERVICE
+              value: hotrod-customer
+            - name: DD_SERVICE_PREFIX
+              value: hotrod-
+            - name: DD_RUNTIME_METRICS_ENABLED
+              value: "true"
+            - name: DD_TRACE_SAMPLE_RATE
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8081
+          readinessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 20m
+              memory: 48Mi
+            limits:
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer
+  namespace: hotrod
+spec:
+  selector:
+    app.kubernetes.io/name: customer
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: driver
+  namespace: hotrod
+  labels:
+    app.kubernetes.io/name: driver
+    app.kubernetes.io/part-of: hotrod
+    tags.datadoghq.com/env: hotrod
+    tags.datadoghq.com/service: hotrod-driver
+    tags.datadoghq.com/version: "1.0.1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: driver
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: driver
+        app.kubernetes.io/part-of: hotrod
+        tags.datadoghq.com/env: hotrod
+        tags.datadoghq.com/service: hotrod-driver
+        tags.datadoghq.com/version: "1.0.1"
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        ad.datadoghq.com/driver.logs: '[{"source": "go", "service": "hotrod-driver"}]'
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      containers:
+        - name: driver
+          image: docker.io/library/hotrod-dd:1.0.1
+          imagePullPolicy: Never
+          command: ["/usr/local/bin/hotrod"]
+          args:
+            - driver
+            - --otel-exporter=datadog
+          env:
+            - name: DD_SERVICE
+              value: hotrod-driver
+            - name: DD_SERVICE_PREFIX
+              value: hotrod-
+            - name: DD_RUNTIME_METRICS_ENABLED
+              value: "true"
+            - name: DD_TRACE_SAMPLE_RATE
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8082
+          readinessProbe:
+            tcpSocket:
+              port: 8082
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 20m
+              memory: 48Mi
+            limits:
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: driver
+  namespace: hotrod
+spec:
+  selector:
+    app.kubernetes.io/name: driver
+  ports:
+    - name: http
+      port: 8082
+      targetPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: route
+  namespace: hotrod
+  labels:
+    app.kubernetes.io/name: route
+    app.kubernetes.io/part-of: hotrod
+    tags.datadoghq.com/env: hotrod
+    tags.datadoghq.com/service: hotrod-route
+    tags.datadoghq.com/version: "1.0.1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: route
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: route
+        app.kubernetes.io/part-of: hotrod
+        tags.datadoghq.com/env: hotrod
+        tags.datadoghq.com/service: hotrod-route
+        tags.datadoghq.com/version: "1.0.1"
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        ad.datadoghq.com/route.logs: '[{"source": "go", "service": "hotrod-route"}]'
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      containers:
+        - name: route
+          image: docker.io/library/hotrod-dd:1.0.1
+          imagePullPolicy: Never
+          command: ["/usr/local/bin/hotrod"]
+          args:
+            - route
+            - --otel-exporter=datadog
+          env:
+            - name: DD_SERVICE
+              value: hotrod-route
+            - name: DD_SERVICE_PREFIX
+              value: hotrod-
+            - name: DD_RUNTIME_METRICS_ENABLED
+              value: "true"
+            - name: DD_TRACE_SAMPLE_RATE
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8083
+          readinessProbe:
+            tcpSocket:
+              port: 8083
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 20m
+              memory: 48Mi
+            limits:
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: route
+  namespace: hotrod
+spec:
+  selector:
+    app.kubernetes.io/name: route
+  ports:
+    - name: http
+      port: 8083
+      targetPort: 8083

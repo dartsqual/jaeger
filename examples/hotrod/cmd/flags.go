@@ -33,7 +33,7 @@ var (
 
 // used by root command
 func addFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&otelExporter, "otel-exporter", "x", "otlp", "OpenTelemetry exporter (otlp|stdout)")
+	cmd.PersistentFlags().StringVarP(&otelExporter, "otel-exporter", "x", "otlp", "OpenTelemetry exporter (otlp|stdout|datadog)")
 
 	cmd.PersistentFlags().DurationVarP(&fixDBConnDelay, "fix-db-query-delay", "D", 300*time.Millisecond, "Average latency of MySQL DB query")
 	cmd.PersistentFlags().BoolVarP(&fixDBConnDisableMutex, "fix-disable-db-conn-mutex", "M", false, "Disables the mutex guarding db connection")

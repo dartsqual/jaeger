@@ -1,0 +1,16 @@
+# HotROD - acesso público via Traefik (HTTPS Let's Encrypt)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: hotrod
+  namespace: hotrod
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: Host(`HOTROD_HOST`)
+      services:
+        - name: frontend
+          port: 8080
+  tls:
+    certResolver: le
